@@ -1,0 +1,25 @@
+service:
+  name: fraud-check
+  description: Fraud Check API
+  version: 0.0.1
+  url:
+    base: /api/v1
+    docs: /doc
+
+server:
+  host: localhost
+  port: 3000
+
+security:
+  docs:
+    username: {{DOCS_USERNAME}}
+    password: {{DOCS_PASSWORD}}
+
+services:
+  fraudAway:
+    path: https://fraudaway.com/api/v1/fraud-risk/invoke
+  simpleFraud: 
+    path: https://simplefraud.com/api/v1/perform-check
+
+logger:
+  http: false

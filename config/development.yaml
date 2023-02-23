@@ -1,0 +1,29 @@
+service:
+  name: Order Fraud Check
+  description: This is a simple Order Fraud Check API based on the OpenAPI 3.0 specification.
+    This API describes the specification for performing a Fraud Check for a customer order
+    and retrieving the details of a prior fraud check.
+  version: 0.0.1
+  url:
+    base: /
+    docs: /docs
+
+server:
+  host: localhost
+  port: 3000
+
+security:
+  docs:
+    username: '{{DOCS_USERNAME}}'
+    password: '{{DOCS_PASSWORD}}'
+
+services:
+  fraudAway:
+    path: '{{FRAUD_AWAY_PATH}}'
+    timeout: '{{FRAUD_AWAY_TIMEOUT}}'
+  simpleFraud: 
+    path: '{{SIMPLE_FRAUD_PATH}}'
+    timeout: '{{SIMPLE_FRAUD_TIMEOUT}}'
+
+logger:
+  http: true
