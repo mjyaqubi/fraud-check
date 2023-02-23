@@ -1,11 +1,12 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { PromiseService } from '../../common/promise/services';
 import { SERVICES_CONFIGS } from '../../common/config/const';
 import { ConfigService } from '../../common/config/service';
+import { LoggerService } from '../../common/logger/service';
+import { PromiseService } from '../../common/promise/services';
 import { FraudAwayRequest, FraudAwayResponse } from './dto';
-import { AxiosError } from 'axios';
 
 @Injectable()
 export class FraudAwayService {
@@ -14,6 +15,7 @@ export class FraudAwayService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly loggerService: LoggerService,
     private readonly promiseService: PromiseService,
   ) {
     this.path = <string>(
@@ -35,6 +37,11 @@ export class FraudAwayService {
     );
 
     if (error) {
+      this.loggerService.error(
+        'Something went wrong while fraud check by Fraud Away API',
+        error,
+        'FraudAwayService',
+      );
       throw error;
     }
 
