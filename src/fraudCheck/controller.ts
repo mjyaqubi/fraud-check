@@ -2,14 +2,14 @@ import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import * as ResponseDecorator from '../common/response/decorator';
 import { CustomerOrder, OrderFraudCheck } from './dto';
-import { CheckService } from './service';
+import { FraudCheckService } from './service';
 
-@Controller()
+@Controller('check')
 @ApiTags('Order Fraud Check')
-export class CheckController {
-  constructor(private readonly checkService: CheckService) {}
+export class FraudCheckController {
+  constructor(private readonly fraudCheckService: FraudCheckService) {}
 
-  @Put('check/:orderId')
+  @Put(':orderId')
   @ApiOperation({
     operationId: 'fraud-check',
     summary:
@@ -32,10 +32,10 @@ export class CheckController {
     console.log('orderId:', orderId);
     console.log('req:', req);
 
-    return this.checkService.fraudCheck(orderId, req);
+    return this.fraudCheckService.fraudCheck(orderId, req);
   }
 
-  @Get('check/:orderFraudCheckId')
+  @Get(':orderFraudCheckId')
   @ApiOperation({
     operationId: 'fraud-check-result',
     summary: 'Find the result of an order fraud check by its Id',

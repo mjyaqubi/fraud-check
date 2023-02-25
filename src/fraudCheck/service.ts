@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
 import { v4 as uuidV4 } from 'uuid';
 import { PromiseService } from '../common/promise/services';
 import { SimpleFraudRequest } from '../services/simpleFraud/dto';
@@ -7,76 +8,81 @@ import { FraudAwayRequest, PersonalAddress } from '../services/fraudAway/dto';
 import { FraudAwayService } from '../services/fraudAway/service';
 import { CustomerOrder, OrderFraudCheck } from './dto';
 import { FraudCheckStatus } from './enum';
+import { FraudCheckModel } from './model';
 
 @Injectable()
-export class CheckService {
+export class FraudCheckService {
   constructor(
     private readonly promiseService: PromiseService,
     private readonly fraudAwayService: FraudAwayService,
     private readonly simpleFraudService: SimpleFraudService,
+    @InjectModel(FraudCheckModel)
+    private readonly fraudCheckModel: typeof FraudCheckModel,
   ) {}
 
   async fraudCheck(
     orderId: string,
     request: CustomerOrder,
   ): Promise<OrderFraudCheck> {
-    let result: OrderFraudCheck;
+    // Check database for existing data
+    // TO-DO: to have a better performance we can use in memory db for most recent data
+    const existingResult = await this.fraudCheckModel.findOne({
+      where: {
+        orderId,
+        customerGuid: request.customerGuid,
+        orderAmount: request.orderAmount,
+      },
+    });
+
+    if (existingResult && existingResult.orderFraudCheckId) {
+      return <OrderFraudCheck>{
+        orderFraudCheckId: existingResult.orderFraudCheckId,
+        customerGuid: existingResult.customerGuid,
+        orderId: existingResult.orderId,
+        orderAmount: existingResult.orderAmount,
+        fraudCheckStatus: existingResult.fraudCheckStatus,
+      };
+    }
+
+    // Check the third-party APIs
+    const orderFraudCheckId = uuidV4();
+    let thirdPartyResult: FraudCheckStatus;
 
     const [fraudAwayResult, fraudAwayError] =
       await this.promiseService.resolver(this.fraudAwayCheck(request));
 
     if (!fraudAwayError) {
-      result = {
-        orderFraudCheckId: uuidV4(),
-        customerGuid: request.customerGuid,
-        orderId: orderId,
-        orderAmount: request.orderAmount,
-        fraudCheckStatus: fraudAwayResult,
-      };
+      thirdPartyResult = fraudAwayResult;
     } else {
       const [simpleFraudResult, simpleFraudError] =
         await this.promiseService.resolver(this.simpleFraudCheck(request));
 
       if (!simpleFraudError) {
-        result = {
-          orderFraudCheckId: uuidV4(),
-          customerGuid: request.customerGuid,
-          orderId: orderId,
-          orderAmount: request.orderAmount,
-          fraudCheckStatus: simpleFraudResult,
-        };
+        thirdPartyResult = simpleFraudResult;
       }
     }
 
-    if (!result.fraudCheckStatus) {
+    if (!thirdPartyResult) {
       throw new HttpException(
         'Service Unavailable',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
-    // store in db
+    await this.fraudCheckModel.create({
+      orderFraudCheckId,
+      customerGuid: request.customerGuid,
+      orderId: orderId,
+      orderAmount: request.orderAmount,
+      fraudCheckStatus: thirdPartyResult,
+    });
 
-    return result;
-  }
-
-  private generateFraudAwayRequest(req: CustomerOrder): FraudAwayRequest {
-    return <FraudAwayRequest>{
-      personFullName: `${req.customerAddress.firstName} ${req.customerAddress.lastName}`,
-      personAddress: <PersonalAddress>{
-        addressLine1: req.customerAddress.line1,
-        town: req.customerAddress.city,
-        county: req.customerAddress.region,
-        postCode: req.customerAddress.postalCode,
-      },
-    };
-  }
-
-  private generateSimpleAwayRequest(req: CustomerOrder): SimpleFraudRequest {
-    return <SimpleFraudRequest>{
-      name: `${req.customerAddress.firstName} ${req.customerAddress.lastName}`,
-      addressLine1: req.customerAddress.line1,
-      postCode: req.customerAddress.postalCode,
+    return {
+      orderFraudCheckId,
+      customerGuid: request.customerGuid,
+      orderId: orderId,
+      orderAmount: request.orderAmount,
+      fraudCheckStatus: thirdPartyResult,
     };
   }
 

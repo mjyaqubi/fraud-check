@@ -13,7 +13,7 @@ import { FraudAwayService } from './service';
     HttpModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        timeout: configService.get(SERVICES_CONFIGS.FRAUD_AWAY_TIMEOUT),
+        timeout: configService.get(SERVICES_CONFIGS.FRAUD_AWAY_TIMEOUT, 5000),
       }),
       inject: [ConfigService],
     }),

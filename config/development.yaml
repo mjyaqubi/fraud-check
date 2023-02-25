@@ -17,6 +17,14 @@ security:
     username: '{{DOCS_USERNAME}}'
     password: '{{DOCS_PASSWORD}}'
 
+database:
+  dialect: '{{DATABASE_DIALECT}}'
+  host: '{{DATABASE_HOST}}'
+  port: '{{DATABASE_PORT}}'
+  username: '{{DATABASE_USERNAME}}'
+  password: '{{DATABASE_PASSWORD}}'
+  database: '{{DATABASE_DATABASE}}'
+
 services:
   fraudAway:
     path: '{{FRAUD_AWAY_PATH}}'

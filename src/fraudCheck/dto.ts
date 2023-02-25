@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsUUID,
+  IsAlphanumeric,
+} from 'class-validator';
 import { FraudCheckStatus } from './enum';
 
 export class Address {
@@ -58,7 +65,7 @@ export class CustomerOrder {
     format: 'guid',
     example: 'e9e85a67-4189-4096-9fdd-226d9d90e023',
   })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   customerGuid: string;
 
@@ -84,7 +91,7 @@ export class OrderFraudCheck {
     format: 'guid',
     example: 'e9e85a67-4189-4096-9fdd-226d9d90e023',
   })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   orderFraudCheckId: string;
 
@@ -93,7 +100,7 @@ export class OrderFraudCheck {
     format: 'guid',
     example: 'e9e85a67-4189-4096-9fdd-226d9d90e023',
   })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   customerGuid: string;
 
@@ -102,7 +109,7 @@ export class OrderFraudCheck {
     format: 'alphanumeric',
     example: 'ABC123',
   })
-  @IsString()
+  @IsAlphanumeric()
   @IsNotEmpty()
   orderId: string;
 

@@ -19,6 +19,15 @@ export enum SECURITY_DOCS_CONFIGS {
   PASSWORD = 'security.docs.password',
 }
 
+export enum DATABASE_CONFIGS {
+  DIALECT = 'database.dialect',
+  HOST = 'database.host',
+  PORT = 'database.port',
+  USERNAME = 'database.username',
+  PASSWORD = 'database.password',
+  DATABASE = 'database.database',
+}
+
 export enum SERVICES_CONFIGS {
   FRAUD_AWAY_PATH = 'services.fraudAway.path',
   FRAUD_AWAY_TIMEOUT = 'services.fraudAway.timeout',
