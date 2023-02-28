@@ -132,3 +132,21 @@ export class OrderFraudCheck {
   @IsNotEmpty()
   fraudCheckStatus: FraudCheckStatus;
 }
+
+import { IsNumberString } from 'class-validator';
+
+export class FindOneParams {
+  @IsNumberString()
+  id: number;
+}
+
+export class OrderFraudCheckParams {
+  @ApiProperty({
+    type: 'string',
+    format: 'guid',
+    example: 'e9e85a67-4189-4096-9fdd-226d9d90e023',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  orderFraudCheckId: string;
+}

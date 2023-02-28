@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import * as ResponseDecorator from '../common/response/decorator';
-import { CustomerOrder, OrderFraudCheck } from './dto';
+import { CustomerOrder, OrderFraudCheck, OrderFraudCheckParams } from './dto';
 import { FraudCheckService } from './service';
 
 @Controller('check')
@@ -25,13 +25,10 @@ export class FraudCheckController {
   @ResponseDecorator.Successful(OrderFraudCheck)
   @ResponseDecorator.BadRequest('Invalid Order ID or body supplied')
   @ResponseDecorator.ServiceUnavailable()
-  async check(
+  async fraudCheck(
     @Param('orderId') orderId: string,
     @Body() req: CustomerOrder,
   ): Promise<OrderFraudCheck> {
-    console.log('orderId:', orderId);
-    console.log('req:', req);
-
     return this.fraudCheckService.fraudCheck(orderId, req);
   }
 
@@ -50,10 +47,9 @@ export class FraudCheckController {
   @ResponseDecorator.Successful(OrderFraudCheck)
   @ResponseDecorator.BadRequest('Invalid Order ID or body supplied')
   @ResponseDecorator.NotFound('OrderFraudCheck Not Found')
-  getCheckResult(
-    @Param('orderFraudCheckId') orderFraudCheckId: string,
-  ): string {
-    console.log('orderFraudCheckId:', orderFraudCheckId);
-    return 'A';
+  async getFraudCheck(
+    @Param() params: OrderFraudCheckParams,
+  ): Promise<OrderFraudCheck> {
+    return this.fraudCheckService.getFraudCheck(params.orderFraudCheckId);
   }
 }

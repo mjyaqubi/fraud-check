@@ -1,11 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { v4 as uuidV4 } from 'uuid';
+import { LoggerService } from '../common/logger/service';
 import { PromiseService } from '../common/promise/services';
-import { SimpleFraudRequest } from '../services/simpleFraud/dto';
-import { SimpleFraudService } from '../services/simpleFraud/service';
 import { FraudAwayRequest, PersonalAddress } from '../services/fraudAway/dto';
 import { FraudAwayService } from '../services/fraudAway/service';
+import { SimpleFraudRequest } from '../services/simpleFraud/dto';
+import { SimpleFraudService } from '../services/simpleFraud/service';
 import { CustomerOrder, OrderFraudCheck } from './dto';
 import { FraudCheckStatus } from './enum';
 import { FraudCheckModel } from './model';
@@ -13,12 +14,36 @@ import { FraudCheckModel } from './model';
 @Injectable()
 export class FraudCheckService {
   constructor(
+    private readonly loggerService: LoggerService,
     private readonly promiseService: PromiseService,
     private readonly fraudAwayService: FraudAwayService,
     private readonly simpleFraudService: SimpleFraudService,
     @InjectModel(FraudCheckModel)
     private readonly fraudCheckModel: typeof FraudCheckModel,
   ) {}
+
+  async getFraudCheck(orderFraudCheckId: string): Promise<OrderFraudCheck> {
+    const existingResult = await this.fraudCheckModel.findOne({
+      where: {
+        orderFraudCheckId,
+      },
+    });
+
+    if (!existingResult || !existingResult.orderFraudCheckId) {
+      throw new HttpException(
+        'OrderFraudCheck not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return <OrderFraudCheck>{
+      orderFraudCheckId: existingResult.orderFraudCheckId,
+      customerGuid: existingResult.customerGuid,
+      orderId: existingResult.orderId,
+      orderAmount: existingResult.orderAmount,
+      fraudCheckStatus: existingResult.fraudCheckStatus,
+    };
+  }
 
   async fraudCheck(
     orderId: string,
@@ -69,6 +94,7 @@ export class FraudCheckService {
       );
     }
 
+    // The database insert might be important so we can fail the request
     await this.fraudCheckModel.create({
       orderFraudCheckId,
       customerGuid: request.customerGuid,
@@ -86,9 +112,7 @@ export class FraudCheckService {
     };
   }
 
-  private async fraudAwayCheck(
-    request: CustomerOrder,
-  ): Promise<FraudCheckStatus> {
+  async fraudAwayCheck(request: CustomerOrder): Promise<FraudCheckStatus> {
     const fraudAwayRequest = <FraudAwayRequest>{
       personFullName: `${request.customerAddress.firstName} ${request.customerAddress.lastName}`,
       personAddress: <PersonalAddress>{
@@ -104,7 +128,11 @@ export class FraudCheckService {
     );
 
     if (error) {
-      throw error;
+      this.loggerService.log(
+        `FraudAway service error - ${error}`,
+        '[Third Party API]',
+      );
+      throw new Error('Something went wrong');
     }
 
     if (response.fraudRiskScore < 1) {
@@ -114,9 +142,7 @@ export class FraudCheckService {
     return FraudCheckStatus.FAILED;
   }
 
-  private async simpleFraudCheck(
-    request: CustomerOrder,
-  ): Promise<FraudCheckStatus> {
+  async simpleFraudCheck(request: CustomerOrder): Promise<FraudCheckStatus> {
     const simpleFraudRequest = <SimpleFraudRequest>{
       name: `${request.customerAddress.firstName} ${request.customerAddress.lastName}`,
       addressLine1: request.customerAddress.line1,
@@ -128,7 +154,11 @@ export class FraudCheckService {
     );
 
     if (error) {
-      throw error;
+      this.loggerService.log(
+        `SimpleFraud service error - ${error}`,
+        '[Third Party API]',
+      );
+      throw new Error('Something went wrong');
     }
 
     if (response.result === 'Pass') {

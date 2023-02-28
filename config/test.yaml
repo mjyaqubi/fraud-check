@@ -17,9 +17,11 @@ security:
 
 services:
   fraudAway:
-    path: https://fraudaway.com/api/v1/fraud-risk/invoke
+    path: '{{FRAUD_AWAY_PATH}}'
+    timeout: '{{FRAUD_AWAY_TIMEOUT}}'
   simpleFraud: 
-    path: https://simplefraud.com/api/v1/perform-check
+    path: '{{SIMPLE_FRAUD_PATH}}'
+    timeout: '{{SIMPLE_FRAUD_TIMEOUT}}'
 
 logger:
   http: false

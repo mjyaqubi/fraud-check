@@ -26,11 +26,11 @@ export class FraudAwayService {
   async performFraudCheck(
     request: FraudAwayRequest,
   ): Promise<FraudAwayResponse> {
-    const [result, error] = await this.promiseService.resolver(
+    const [response, error] = await this.promiseService.resolver(
       firstValueFrom(
         this.httpService.post<FraudAwayResponse>(this.path, request).pipe(
           catchError((error: AxiosError) => {
-            throw error.message;
+            throw new Error(error.message);
           }),
         ),
       ),
@@ -42,9 +42,9 @@ export class FraudAwayService {
         error,
         'FraudAwayService',
       );
-      throw error;
+      throw new Error('Something went wrong');
     }
 
-    return result.data;
+    return response.data;
   }
 }

@@ -1,5 +1,7 @@
-import { HttpModule } from '@nestjs/axios';
+import { HttpModule, HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { AxiosResponse } from 'axios';
+import { of, throwError } from 'rxjs';
 import { ConfigService } from '../../common/config/service';
 import { ConfigModule } from '../../common/config/module';
 import { LoggerModule } from '../../common/logger/module';
@@ -10,13 +12,13 @@ import { SimpleFraudService } from './service';
 
 describe('SimpleFraudService', () => {
   let service: SimpleFraudService;
+  let httpService: HttpService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule, HttpModule, LoggerModule, PromiseModule],
       providers: [
         ConfigService,
-        // HttpService,
         LoggerService,
         PromiseService,
         SimpleFraudService,
@@ -24,6 +26,7 @@ describe('SimpleFraudService', () => {
     }).compile();
 
     service = module.get<SimpleFraudService>(SimpleFraudService);
+    httpService = module.get<HttpService>(HttpService);
   });
 
   it('should be defined', () => {
@@ -46,46 +49,115 @@ describe('SimpleFraudService', () => {
     });
   });
 
-  // ----
+  describe('extractResultFromXml()', () => {
+    it('should extract result from XML response (Pass)', () => {
+      expect(
+        service.extractResultFromXml(
+          '<?xml version="1.0" encoding="UTF-8"?>' +
+            '<ResponseBody><result>Pass</result></ResponseBody>',
+        ),
+      ).toEqual('Pass');
+    });
 
-  // describe('create()', () => {
-  //   it('should successfully insert a user', () => {
-  //     const oneUser = {
-  //       firstName: 'firstName #1',
-  //       lastName: 'lastName #1',
-  //     };
-  //     expect(
-  //       service.create({
-  //         firstName: 'firstName #1',
-  //         lastName: 'lastName #1',
-  //       }),
-  //     ).toEqual(oneUser);
-  //   });
-  // });
+    it('should extract result from XML response (Fail)', () => {
+      expect(
+        service.extractResultFromXml(
+          '<?xml version="1.0" encoding="UTF-8"?>' +
+            '<ResponseBody><result>Fail</result></ResponseBody>',
+        ),
+      ).toEqual('Fail');
+    });
 
-  // describe('findAll()', () => {
-  //   it('should return an array of users', async () => {
-  //     const users = await service.findAll();
-  //     expect(users).toEqual(usersArray);
-  //   });
-  // });
+    it('should extract result from XML response (unexpected result!)', () => {
+      expect(() =>
+        service.extractResultFromXml(
+          '<?xml version="1.0" encoding="UTF-8"?>' +
+            '<ResponseBody><result>Foo</result></ResponseBody>',
+        ),
+      ).toThrowError('unexpected result!');
+    });
 
-  // describe('findOne()', () => {
-  //   it('should get a single user', () => {
-  //     const findSpy = jest.spyOn(model, 'findOne');
-  //     expect(service.findOne('1'));
-  //     expect(findSpy).toBeCalledWith({ where: { id: '1' } });
-  //   });
-  // });
+    it('should extract result from XML response (result is not exist in the response!)', () => {
+      expect(() =>
+        service.extractResultFromXml('<?xml version="1.0" encoding="UTF-8"?>'),
+      ).toThrowError('result is not exist in the response!');
+    });
 
-  // describe('remove()', () => {
-  //   it('should remove a user', async () => {
-  //     const findSpy = jest.spyOn(model, 'findOne').mockReturnValue({
-  //       destroy: jest.fn(),
-  //     } as any);
-  //     const retVal = await service.remove('2');
-  //     expect(findSpy).toBeCalledWith({ where: { id: '2' } });
-  //     expect(retVal).toBeUndefined();
-  //   });
-  // });
+    it('should extract result from XML response (response is empty!)', () => {
+      expect(() => service.extractResultFromXml('')).toThrowError(
+        'response is empty!',
+      );
+    });
+  });
+
+  describe('performFraudCheck()', () => {
+    it('should perform fraud check (Pass)', () => {
+      const request = {
+        name: 'John Doe',
+        addressLine1: '18 Main Street',
+        postCode: 'SE50 0ZD',
+      };
+
+      const response: AxiosResponse<any> = {
+        data:
+          '<?xml version="1.0" encoding="UTF-8"?>' +
+          '<ResponseBody><result>Pass</result></ResponseBody>',
+        headers: {},
+        config: { headers: undefined, url: undefined },
+        status: 200,
+        statusText: 'OK',
+      };
+
+      jest
+        .spyOn(httpService, 'post')
+        .mockImplementationOnce(() => of(response));
+
+      expect(service.performFraudCheck(request)).resolves.toEqual({
+        result: 'Pass',
+      });
+    });
+
+    it('should perform fraud check (Fail)', () => {
+      const request = {
+        name: 'John Doe',
+        addressLine1: '18 Main Street',
+        postCode: 'SE50 0ZD',
+      };
+      const response: AxiosResponse<any> = {
+        data:
+          '<?xml version="1.0" encoding="UTF-8"?>' +
+          '<ResponseBody><result>Fail</result></ResponseBody>',
+        headers: {},
+        config: { headers: undefined, url: undefined },
+        status: 200,
+        statusText: 'OK',
+      };
+
+      jest
+        .spyOn(httpService, 'post')
+        .mockImplementationOnce(() => of(response));
+
+      expect(service.performFraudCheck(request)).resolves.toEqual({
+        result: 'Fail',
+      });
+    });
+
+    it('should perform fraud check (Something went wrong)', () => {
+      const request = {
+        name: 'John Doe',
+        addressLine1: '18 Main Street',
+        postCode: 'SE50 0ZD',
+      };
+
+      jest
+        .spyOn(httpService, 'post')
+        .mockImplementationOnce(() =>
+          throwError({ response: '', status: '500' }),
+        );
+
+      expect(service.performFraudCheck(request)).rejects.toThrowError(
+        'Something went wrong',
+      );
+    });
+  });
 });

@@ -35,21 +35,21 @@ export class SimpleFraudService {
 
   extractResultFromXml(response: string): SimpleFraudResult {
     if (!response || response === '') {
-      throw 'response is empty!';
+      throw new Error('response is empty!');
     }
 
     const startIndex = response.indexOf('<result>');
     if (startIndex === -1) {
-      throw 'result is not exist in the response';
+      throw new Error('result is not exist in the response!');
     }
 
-    const result = response.slice(startIndex + 8, 4);
+    const result = response.slice(startIndex + 8, startIndex + 12);
     if (result === SimpleFraudResult.PASSED) {
       return SimpleFraudResult.PASSED;
     } else if (result === SimpleFraudResult.FAILED) {
       return SimpleFraudResult.FAILED;
     } else {
-      throw 'unexpected result';
+      throw new Error('unexpected result!');
     }
   }
 
@@ -62,7 +62,7 @@ export class SimpleFraudService {
       firstValueFrom(
         this.httpService.post<string>(this.path, xmlRequest).pipe(
           catchError((error: AxiosError) => {
-            throw error.message;
+            throw new Error(error.message);
           }),
         ),
       ),
@@ -74,7 +74,7 @@ export class SimpleFraudService {
         error,
         'FraudAwayService',
       );
-      throw error;
+      throw new Error('Something went wrong');
     }
 
     const result = this.extractResultFromXml(response.data);
