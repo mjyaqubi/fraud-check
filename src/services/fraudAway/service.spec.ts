@@ -4,7 +4,6 @@ import { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import { ConfigService } from '../../common/config/service';
 import { ConfigModule } from '../../common/config/module';
-import { LoggerModule } from '../../common/logger/module';
 import { LoggerService } from '../../common/logger/service';
 import { PromiseModule } from '../../common/promise/module';
 import { PromiseService } from '../../common/promise/services';
@@ -16,12 +15,18 @@ describe('FraudAwayService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule, HttpModule, LoggerModule, PromiseModule],
+      imports: [ConfigModule, HttpModule, PromiseModule],
       providers: [
         ConfigService,
-        LoggerService,
         PromiseService,
         FraudAwayService,
+        {
+          provide: LoggerService,
+          useValue: {
+            log: jest.fn(),
+            error: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

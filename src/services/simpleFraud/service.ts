@@ -70,8 +70,7 @@ export class SimpleFraudService {
 
     if (error) {
       this.loggerService.error(
-        'Something went wrong while fraud check by Simple Fraud API',
-        error,
+        'Something went wrong while fraud check by SimpleFraud API',
         'FraudAwayService',
       );
       throw new Error('Something went wrong');

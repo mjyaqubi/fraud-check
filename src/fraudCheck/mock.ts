@@ -1,3 +1,5 @@
+import { FraudCheckStatus } from './enum';
+
 export const customerOrderId = 'ABC456';
 
 export const customerOrderRequest = {
@@ -20,12 +22,27 @@ export const orderFraudCheckResult = {
   customerGuid: 'e9e85a67-4189-4096-9fdd-226d9d90e023',
   orderId: 'ABC123',
   orderAmount: 1500.55,
-  fraudCheckStatus: 'Passed',
+  fraudCheckStatus: FraudCheckStatus.PASSED,
 };
 
 export const orderFraudCheckResultWithoutId = {
   customerGuid: 'e9e85a67-4189-4096-9fdd-226d9d90e023',
   orderId: 'ABC456',
   orderAmount: 1500.55,
-  fraudCheckStatus: 'Passed',
+  fraudCheckStatus: FraudCheckStatus.PASSED,
+};
+
+export const orderFraudCheckFailedResultWithoutId = {
+  ...orderFraudCheckResultWithoutId,
+  fraudCheckStatus: FraudCheckStatus.FAILED,
+};
+
+export const customerOrderLowAmountRequest = {
+  ...customerOrderRequest,
+  orderAmount: 99.99,
+};
+
+export const orderFraudCheckLowAmountResultWithoutId = {
+  ...orderFraudCheckResultWithoutId,
+  orderAmount: 99.99,
 };

@@ -1,7 +1,8 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { v4 as uuidV4 } from 'uuid';
-import { LoggerService } from '../common/logger/service';
+import { THRESHOLD_CONFIGS } from '../common/config/const';
+import { ConfigService } from '../common/config/service';
 import { PromiseService } from '../common/promise/services';
 import { FraudAwayRequest, PersonalAddress } from '../services/fraudAway/dto';
 import { FraudAwayService } from '../services/fraudAway/service';
@@ -13,14 +14,26 @@ import { FraudCheckModel } from './model';
 
 @Injectable()
 export class FraudCheckService {
+  private riskScoreThreshold: number;
+  private bypassAmountThreshold: number;
+
   constructor(
-    private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
     private readonly promiseService: PromiseService,
     private readonly fraudAwayService: FraudAwayService,
     private readonly simpleFraudService: SimpleFraudService,
     @InjectModel(FraudCheckModel)
     private readonly fraudCheckModel: typeof FraudCheckModel,
-  ) {}
+  ) {
+    this.riskScoreThreshold = this.configService.get(
+      THRESHOLD_CONFIGS.RISK_SCORE,
+      0,
+    );
+    this.bypassAmountThreshold = this.configService.get(
+      THRESHOLD_CONFIGS.BYPASS_AMOUNT,
+      0,
+    );
+  }
 
   async getFraudCheck(orderFraudCheckId: string): Promise<OrderFraudCheck> {
     const existingResult = await this.fraudCheckModel.findOne({
@@ -30,10 +43,7 @@ export class FraudCheckService {
     });
 
     if (!existingResult || !existingResult.orderFraudCheckId) {
-      throw new HttpException(
-        'OrderFraudCheck not found',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new Error('OrderFraudCheck not found');
     }
 
     return <OrderFraudCheck>{
@@ -73,12 +83,16 @@ export class FraudCheckService {
     const orderFraudCheckId = uuidV4();
     let thirdPartyResult: FraudCheckStatus;
 
+    // Fraud Away check
     const [fraudAwayResult, fraudAwayError] =
       await this.promiseService.resolver(this.fraudAwayCheck(request));
 
     if (!fraudAwayError) {
       thirdPartyResult = fraudAwayResult;
-    } else {
+    }
+
+    // Simple Fraud check
+    if (!thirdPartyResult) {
       const [simpleFraudResult, simpleFraudError] =
         await this.promiseService.resolver(this.simpleFraudCheck(request));
 
@@ -87,14 +101,16 @@ export class FraudCheckService {
       }
     }
 
+    // Threshold check
     if (!thirdPartyResult) {
-      throw new HttpException(
-        'Service Unavailable',
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
+      thirdPartyResult =
+        request.orderAmount <= this.bypassAmountThreshold
+          ? FraudCheckStatus.PASSED
+          : FraudCheckStatus.FAILED;
     }
 
     // The database insert might be important so we can fail the request
+    // The third party APIs result might be important so we can store them along with the response payload
     await this.fraudCheckModel.create({
       orderFraudCheckId,
       customerGuid: request.customerGuid,
@@ -128,18 +144,13 @@ export class FraudCheckService {
     );
 
     if (error) {
-      this.loggerService.log(
-        `FraudAway service error - ${error}`,
-        '[Third Party API]',
-      );
-      throw new Error('Something went wrong');
+      throw new Error(error);
     }
 
-    if (response.fraudRiskScore < 1) {
-      return FraudCheckStatus.PASSED;
-    }
-
-    return FraudCheckStatus.FAILED;
+    return response.fraudRiskScore &&
+      response.fraudRiskScore < this.riskScoreThreshold
+      ? FraudCheckStatus.PASSED
+      : FraudCheckStatus.FAILED;
   }
 
   async simpleFraudCheck(request: CustomerOrder): Promise<FraudCheckStatus> {
@@ -154,17 +165,11 @@ export class FraudCheckService {
     );
 
     if (error) {
-      this.loggerService.log(
-        `SimpleFraud service error - ${error}`,
-        '[Third Party API]',
-      );
-      throw new Error('Something went wrong');
+      throw new Error(error);
     }
 
-    if (response.result === 'Pass') {
-      return FraudCheckStatus.FAILED;
-    }
-
-    return FraudCheckStatus.FAILED;
+    return response.result === 'Pass'
+      ? FraudCheckStatus.PASSED
+      : FraudCheckStatus.FAILED;
   }
 }

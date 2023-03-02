@@ -17,14 +17,6 @@ security:
     username: '{{DOCS_USERNAME}}'
     password: '{{DOCS_PASSWORD}}'
 
-database:
-  dialect: '{{DATABASE_DIALECT}}'
-  host: '{{DATABASE_HOST}}'
-  port: '{{DATABASE_PORT}}'
-  username: '{{DATABASE_USERNAME}}'
-  password: '{{DATABASE_PASSWORD}}'
-  database: '{{DATABASE_DATABASE}}'
-
 services:
   fraudAway:
     path: '{{FRAUD_AWAY_PATH}}'
@@ -32,6 +24,18 @@ services:
   simpleFraud: 
     path: '{{SIMPLE_FRAUD_PATH}}'
     timeout: '{{SIMPLE_FRAUD_TIMEOUT}}'
+
+threshold:
+  risk_score: '{{RISK_SCORE}}'
+  bypass_amount: '{{BYPASS_AMOUNT}}'
+
+database:
+  dialect: '{{DATABASE_DIALECT}}'
+  host: '{{DATABASE_HOST}}'
+  port: '{{DATABASE_PORT}}'
+  username: '{{DATABASE_USERNAME}}'
+  password: '{{DATABASE_PASSWORD}}'
+  database: '{{DATABASE_DATABASE}}'
 
 logger:
   http: true

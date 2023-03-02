@@ -38,8 +38,7 @@ export class FraudAwayService {
 
     if (error) {
       this.loggerService.error(
-        'Something went wrong while fraud check by Fraud Away API',
-        error,
+        'Something went wrong while fraud check by FraudAway API',
         'FraudAwayService',
       );
       throw new Error('Something went wrong');

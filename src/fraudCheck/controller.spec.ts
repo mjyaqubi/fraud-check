@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '../common/config/module';
-import { LoggerModule } from '../common/logger/module';
 import { PromiseModule } from '../common/promise/module';
 import { FraudAwayModule } from '../services/fraudAway/module';
 import { SimpleFraudModule } from '../services/simpleFraud/module';
 import { FraudCheckController } from './controller';
 import { FraudCheckService } from './service';
+import { FraudCheckStatus } from './enum';
 import {
   customerOrderId,
+  customerOrderLowAmountRequest,
   customerOrderRequest,
   orderFraudCheckResult,
 } from './mock';
@@ -15,12 +16,17 @@ import {
 describe('FraudCheckController', () => {
   let fraudCheckController: FraudCheckController;
 
+  const orderFraudCheckFailedResult = {
+    ...orderFraudCheckResult,
+    orderAmount: 100,
+    fraudCheckStatus: FraudCheckStatus.FAILED,
+  };
+
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule,
         PromiseModule,
-        LoggerModule,
         FraudAwayModule,
         SimpleFraudModule,
       ],
@@ -29,8 +35,17 @@ describe('FraudCheckController', () => {
         {
           provide: FraudCheckService,
           useValue: {
-            getFraudCheck: jest.fn(() => orderFraudCheckResult),
-            fraudCheck: jest.fn(() => orderFraudCheckResult),
+            getFraudCheck: jest.fn((id) => {
+              return orderFraudCheckResult.orderFraudCheckId === id
+                ? Promise.resolve(orderFraudCheckResult)
+                : Promise.reject(new Error('OrderFraudCheck not found'));
+            }),
+            fraudCheck: jest.fn((_orderId, customerOrderRequest) => {
+              return orderFraudCheckResult.orderAmount ===
+                customerOrderRequest.orderAmount
+                ? Promise.resolve(orderFraudCheckResult)
+                : Promise.resolve(orderFraudCheckFailedResult);
+            }),
           },
         },
       ],
@@ -51,6 +66,14 @@ describe('FraudCheckController', () => {
         }),
       ).resolves.toEqual(orderFraudCheckResult);
     });
+
+    it('should return error (Fail)', () => {
+      expect(
+        fraudCheckController.getFraudCheck({
+          orderFraudCheckId: '',
+        }),
+      ).rejects.toEqual(new Error('OrderFraudCheck not found'));
+    });
   });
 
   describe('fraudCheck()', () => {
@@ -58,6 +81,15 @@ describe('FraudCheckController', () => {
       expect(
         fraudCheckController.fraudCheck(customerOrderId, customerOrderRequest),
       ).resolves.toEqual(orderFraudCheckResult);
+    });
+
+    it('should return the result (Fail)', () => {
+      expect(
+        fraudCheckController.fraudCheck(
+          customerOrderId,
+          customerOrderLowAmountRequest,
+        ),
+      ).resolves.toEqual(orderFraudCheckFailedResult);
     });
   });
 });

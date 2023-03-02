@@ -6,15 +6,6 @@ service:
     base: /api/v1
     docs: /doc
 
-server:
-  host: localhost
-  port: 3000
-
-security:
-  docs:
-    username: {{DOCS_USERNAME}}
-    password: {{DOCS_PASSWORD}}
-
 services:
   fraudAway:
     path: '{{FRAUD_AWAY_PATH}}'
@@ -22,6 +13,10 @@ services:
   simpleFraud: 
     path: '{{SIMPLE_FRAUD_PATH}}'
     timeout: '{{SIMPLE_FRAUD_TIMEOUT}}'
+
+threshold:
+  risk_score: '{{RISK_SCORE}}'
+  bypass_amount: '{{BYPASS_AMOUNT}}'
 
 logger:
   http: false

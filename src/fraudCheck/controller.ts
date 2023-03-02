@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Put,
+} from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import * as ResponseDecorator from '../common/response/decorator';
 import { CustomerOrder, OrderFraudCheck, OrderFraudCheckParams } from './dto';
@@ -29,7 +37,14 @@ export class FraudCheckController {
     @Param('orderId') orderId: string,
     @Body() req: CustomerOrder,
   ): Promise<OrderFraudCheck> {
-    return this.fraudCheckService.fraudCheck(orderId, req);
+    try {
+      return this.fraudCheckService.fraudCheck(orderId, req);
+    } catch (error) {
+      throw new HttpException(
+        'Service Unavailable',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 
   @Get(':orderFraudCheckId')
@@ -50,6 +65,13 @@ export class FraudCheckController {
   async getFraudCheck(
     @Param() params: OrderFraudCheckParams,
   ): Promise<OrderFraudCheck> {
-    return this.fraudCheckService.getFraudCheck(params.orderFraudCheckId);
+    try {
+      return this.fraudCheckService.getFraudCheck(params.orderFraudCheckId);
+    } catch (error) {
+      throw new HttpException(
+        'OrderFraudCheck not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
   }
 }

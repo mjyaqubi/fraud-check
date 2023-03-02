@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { ConfigService } from '../common/config/service';
 import { ConfigModule } from '../common/config/module';
-import { LoggerModule } from '../common/logger/module';
 import { LoggerService } from '../common/logger/service';
 import { PromiseModule } from '../common/promise/module';
 import { PromiseService } from '../common/promise/services';
@@ -13,8 +12,11 @@ import { FraudCheckService } from './service';
 import { FraudCheckModel } from './model';
 import {
   customerOrderId,
+  customerOrderLowAmountRequest,
   customerOrderRequest,
+  orderFraudCheckFailedResultWithoutId,
   orderFraudCheckId,
+  orderFraudCheckLowAmountResultWithoutId,
   orderFraudCheckResult,
   orderFraudCheckResultWithoutId,
 } from './mock';
@@ -26,7 +28,6 @@ describe('FraudCheckService', () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule,
-        LoggerModule,
         PromiseModule,
         FraudAwayModule,
         SimpleFraudModule,
@@ -108,7 +109,22 @@ describe('FraudCheckService', () => {
       ).resolves.toMatchObject(orderFraudCheckResultWithoutId);
     });
 
-    it('should call to third party API to get result (Fail)', () => {
+    it('should call to third party API to get result (Threshold Pass)', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      jest
+        .spyOn(service, 'fraudAwayCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
+
+      jest
+        .spyOn(service, 'simpleFraudCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
+
+      expect(
+        service.fraudCheck(customerOrderId, customerOrderLowAmountRequest),
+      ).resolves.toMatchObject(orderFraudCheckLowAmountResultWithoutId);
+    });
+
+    it('should call to third party API to get result (Threshold Fail)', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       jest
         .spyOn(service, 'fraudAwayCheck')
@@ -120,7 +136,7 @@ describe('FraudCheckService', () => {
 
       expect(
         service.fraudCheck(customerOrderId, customerOrderRequest),
-      ).rejects.toThrowError('Service Unavailable');
+      ).resolves.toMatchObject(orderFraudCheckFailedResultWithoutId);
     });
   });
 });
