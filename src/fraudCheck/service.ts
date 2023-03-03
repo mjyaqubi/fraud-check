@@ -9,7 +9,7 @@ import { FraudAwayService } from '../services/fraudAway/service';
 import { SimpleFraudRequest } from '../services/simpleFraud/dto';
 import { SimpleFraudService } from '../services/simpleFraud/service';
 import { CustomerOrder, OrderFraudCheck, ProviderResult } from './dto';
-import { FraudCheckStatus } from './enum';
+import { FraudCheckProviders, FraudCheckStatus } from './enum';
 import { FraudCheckModel } from './model';
 
 @Injectable()
@@ -81,7 +81,6 @@ export class FraudCheckService {
 
     // Check the third-party APIs
     const orderFraudCheckId = uuidV4();
-    let providerName: string;
     let providerResult: ProviderResult;
 
     // Fraud Away check
@@ -89,27 +88,27 @@ export class FraudCheckService {
       await this.promiseService.resolver(this.fraudAwayCheck(request));
 
     if (!fraudAwayError) {
-      providerName = 'FraudAway';
       providerResult = fraudAwayResult;
     }
 
     // Simple Fraud check
-    if (!providerResult.result) {
+    if (!providerResult) {
       const [simpleFraudResult, simpleFraudError] =
         await this.promiseService.resolver(this.simpleFraudCheck(request));
 
       if (!simpleFraudError) {
-        providerName = 'SimpleFraud';
         providerResult = simpleFraudResult;
       }
     }
 
     // Threshold check
-    if (!providerResult.result) {
-      providerName = 'Threshold';
+    if (!providerResult) {
       providerResult = {
-        response: `Bypass Amount Threshold: ${this.bypassAmountThreshold} - Order Amount: ${request.orderAmount}`,
-        result:
+        name: FraudCheckProviders.BYPASS_THRESHOLD,
+        response: {
+          threshold: this.bypassAmountThreshold,
+        },
+        fraudCheckStatus:
           request.orderAmount <= this.bypassAmountThreshold
             ? FraudCheckStatus.PASSED
             : FraudCheckStatus.FAILED,
@@ -117,15 +116,14 @@ export class FraudCheckService {
     }
 
     // The database insert might be important so we can fail the request
-    // The third party APIs result might be important so we can store them along with the response payload
+    // The third party APIs result stored as string, can be JSON if required
     await this.fraudCheckModel.create({
       orderFraudCheckId,
       customerGuid: request.customerGuid,
       orderId: orderId,
       orderAmount: request.orderAmount,
-      fraudCheckStatus: providerResult.result,
-      providerName: providerName,
-      providerResponse: providerResult.response,
+      fraudCheckStatus: providerResult.fraudCheckStatus,
+      providerResponse: JSON.stringify(providerResult),
     });
 
     return {
@@ -133,7 +131,7 @@ export class FraudCheckService {
       customerGuid: request.customerGuid,
       orderId: orderId,
       orderAmount: request.orderAmount,
-      fraudCheckStatus: providerResult.result,
+      fraudCheckStatus: providerResult.fraudCheckStatus,
     };
   }
 
@@ -157,8 +155,9 @@ export class FraudCheckService {
     }
 
     return <ProviderResult>{
-      response: `fraudRiskScore: ${response.fraudRiskScore.toString()}`,
-      result:
+      name: FraudCheckProviders.FRAUD_AWAY,
+      response: response,
+      fraudCheckStatus:
         response.fraudRiskScore &&
         response.fraudRiskScore < this.riskScoreThreshold
           ? FraudCheckStatus.PASSED
@@ -181,9 +180,10 @@ export class FraudCheckService {
       throw new Error(error);
     }
 
-    return {
-      response: response.result,
-      result:
+    return <ProviderResult>{
+      name: FraudCheckProviders.SIMPLE_FRAUD,
+      response: response,
+      fraudCheckStatus:
         response.result === 'Pass'
           ? FraudCheckStatus.PASSED
           : FraudCheckStatus.FAILED,

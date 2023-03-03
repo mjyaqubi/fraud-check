@@ -1,4 +1,4 @@
 export enum SimpleFraudResult {
-  PASSED = 'Pass',
-  FAILED = 'Fail',
+  PASS = 'Pass',
+  FAIL = 'Fail',
 }

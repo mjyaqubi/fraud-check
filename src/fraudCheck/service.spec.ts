@@ -6,8 +6,9 @@ import { LoggerService } from '../common/logger/service';
 import { PromiseModule } from '../common/promise/module';
 import { PromiseService } from '../common/promise/services';
 import { FraudAwayModule } from '../services/fraudAway/module';
+import { SimpleFraudResult } from '../services/simpleFraud/enum';
 import { SimpleFraudModule } from '../services/simpleFraud/module';
-import { FraudCheckStatus } from './enum';
+import { FraudCheckProviders, FraudCheckStatus } from './enum';
 import { FraudCheckService } from './service';
 import { FraudCheckModel } from './model';
 import {
@@ -85,64 +86,62 @@ describe('FraudCheckService', () => {
     });
 
     it('should call to third party API to get result (FraudAway Pass)', () => {
-      jest
-        .spyOn(service, 'fraudAwayCheck')
-        .mockImplementationOnce(async () => ({
-          response: 'fraudRiskScore: 10',
-          result: FraudCheckStatus.PASSED,
-        }));
+      jest.spyOn(service, 'fraudAwayCheck').mockResolvedValue({
+        name: FraudCheckProviders.FRAUD_AWAY,
+        response: { fraudRiskScore: 10 },
+        fraudCheckStatus: FraudCheckStatus.PASSED,
+      });
 
       expect(
         service.fraudCheck(customerOrderId, customerOrderRequest),
       ).resolves.toMatchObject(orderFraudCheckResultWithoutId);
     });
 
-    // it('should call to third party API to get result (SimpleFraud Pass)', () => {
-    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    //   jest
-    //     .spyOn(service, 'fraudAwayCheck')
-    //     .mockRejectedValue(new Error('Something went wrong'));
+    it('should call to third party API to get result (SimpleFraud Pass)', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      jest
+        .spyOn(service, 'fraudAwayCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
 
-    //   jest
-    //     .spyOn(service, 'simpleFraudCheck')
-    //     .mockImplementationOnce(async () => ({
-    //       response: 'Pass',
-    //       result: FraudCheckStatus.PASSED,
-    //     }));
+      jest.spyOn(service, 'simpleFraudCheck').mockResolvedValue({
+        name: FraudCheckProviders.SIMPLE_FRAUD,
+        response: { result: SimpleFraudResult.PASS },
+        fraudCheckStatus: FraudCheckStatus.PASSED,
+      });
 
-    //   expect(
-    //     service.fraudCheck(customerOrderId, customerOrderRequest),
-    //   ).resolves.toMatchObject(orderFraudCheckResultWithoutId);
-    // });
+      expect(
+        service.fraudCheck(customerOrderId, customerOrderRequest),
+      ).resolves.toMatchObject(orderFraudCheckResultWithoutId);
+    });
 
-    // it('should call to third party API to get result (Threshold Pass)', () => {
-    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    //   jest
-    //     .spyOn(service, 'fraudAwayCheck')
-    //     .mockRejectedValue(new Error('Something went wrong'));
+    it('should call to third party API to get result (Threshold Pass)', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      jest
+        .spyOn(service, 'fraudAwayCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
 
-    //   jest
-    //     .spyOn(service, 'simpleFraudCheck')
-    //     .mockRejectedValue(new Error('Something went wrong'));
+      jest
+        .spyOn(service, 'simpleFraudCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
 
-    //   expect(
-    //     service.fraudCheck(customerOrderId, customerOrderLowAmountRequest),
-    //   ).resolves.toMatchObject(orderFraudCheckLowAmountResultWithoutId);
-    // });
+      expect(
+        service.fraudCheck(customerOrderId, customerOrderLowAmountRequest),
+      ).resolves.toMatchObject(orderFraudCheckLowAmountResultWithoutId);
+    });
 
-    // it('should call to third party API to get result (Threshold Fail)', () => {
-    //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    //   jest
-    //     .spyOn(service, 'fraudAwayCheck')
-    //     .mockRejectedValue(new Error('Something went wrong'));
+    it('should call to third party API to get result (Threshold Fail)', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      jest
+        .spyOn(service, 'fraudAwayCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
 
-    //   jest
-    //     .spyOn(service, 'simpleFraudCheck')
-    //     .mockRejectedValue(new Error('Something went wrong'));
+      jest
+        .spyOn(service, 'simpleFraudCheck')
+        .mockRejectedValue(new Error('Something went wrong'));
 
-    //   expect(
-    //     service.fraudCheck(customerOrderId, customerOrderRequest),
-    //   ).resolves.toMatchObject(orderFraudCheckFailedResultWithoutId);
-    // });
+      expect(
+        service.fraudCheck(customerOrderId, customerOrderRequest),
+      ).resolves.toMatchObject(orderFraudCheckFailedResultWithoutId);
+    });
   });
 });

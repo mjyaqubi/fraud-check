@@ -44,10 +44,10 @@ export class SimpleFraudService {
     }
 
     const result = response.slice(startIndex + 8, startIndex + 12);
-    if (result === SimpleFraudResult.PASSED) {
-      return SimpleFraudResult.PASSED;
-    } else if (result === SimpleFraudResult.FAILED) {
-      return SimpleFraudResult.FAILED;
+    if (result === SimpleFraudResult.PASS) {
+      return SimpleFraudResult.PASS;
+    } else if (result === SimpleFraudResult.FAIL) {
+      return SimpleFraudResult.FAIL;
     } else {
       throw new Error('unexpected result!');
     }

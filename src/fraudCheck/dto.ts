@@ -3,11 +3,14 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsNumberString,
   IsString,
   IsUUID,
   IsAlphanumeric,
 } from 'class-validator';
-import { FraudCheckStatus } from './enum';
+import { FraudAwayResponse } from '../services/fraudAway/dto';
+import { SimpleFraudResponse } from '../services/simpleFraud/dto';
+import { FraudCheckProviders, FraudCheckStatus } from './enum';
 
 export class Address {
   @ApiProperty({
@@ -133,8 +136,6 @@ export class OrderFraudCheck {
   fraudCheckStatus: FraudCheckStatus;
 }
 
-import { IsNumberString } from 'class-validator';
-
 export class FindOneParams {
   @IsNumberString()
   id: number;
@@ -151,12 +152,21 @@ export class OrderFraudCheckParams {
   orderFraudCheckId: string;
 }
 
-export class ProviderResult {
-  @IsString()
+export class ThresholdResponse {
+  @IsNumber()
   @IsNotEmpty()
-  response: string;
+  threshold: number;
+}
+
+export class ProviderResult {
+  @IsEnum(FraudCheckProviders)
+  @IsNotEmpty()
+  name: FraudCheckProviders;
+
+  @IsNotEmpty()
+  response: FraudAwayResponse | SimpleFraudResponse | ThresholdResponse;
 
   @IsEnum(FraudCheckStatus)
   @IsNotEmpty()
-  result: FraudCheckStatus;
+  fraudCheckStatus: FraudCheckStatus;
 }

@@ -37,8 +37,5 @@ export class FraudCheckModel extends Model {
   fraudCheckStatus: FraudCheckStatus;
 
   @Column
-  providerName: string;
-
-  @Column
   providerResponse: string;
 }

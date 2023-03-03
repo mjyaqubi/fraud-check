@@ -8,6 +8,7 @@ import { LoggerService } from '../../common/logger/service';
 import { PromiseModule } from '../../common/promise/module';
 import { PromiseService } from '../../common/promise/services';
 import { SimpleFraudService } from './service';
+import { SimpleFraudResult } from './enum';
 
 describe('SimpleFraudService', () => {
   let service: SimpleFraudService;
@@ -61,7 +62,7 @@ describe('SimpleFraudService', () => {
           '<?xml version="1.0" encoding="UTF-8"?>' +
             '<ResponseBody><result>Pass</result></ResponseBody>',
         ),
-      ).toEqual('Pass');
+      ).toEqual(SimpleFraudResult.PASS);
     });
 
     it('should extract result from XML response (Fail)', () => {
@@ -70,7 +71,7 @@ describe('SimpleFraudService', () => {
           '<?xml version="1.0" encoding="UTF-8"?>' +
             '<ResponseBody><result>Fail</result></ResponseBody>',
         ),
-      ).toEqual('Fail');
+      ).toEqual(SimpleFraudResult.FAIL);
     });
 
     it('should extract result from XML response (unexpected result!)', () => {
@@ -118,7 +119,7 @@ describe('SimpleFraudService', () => {
         .mockImplementationOnce(() => of(response));
 
       expect(service.performFraudCheck(request)).resolves.toEqual({
-        result: 'Pass',
+        result: SimpleFraudResult.PASS,
       });
     });
 
@@ -143,7 +144,7 @@ describe('SimpleFraudService', () => {
         .mockImplementationOnce(() => of(response));
 
       expect(service.performFraudCheck(request)).resolves.toEqual({
-        result: 'Fail',
+        result: SimpleFraudResult.FAIL,
       });
     });
 
