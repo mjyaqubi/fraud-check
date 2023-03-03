@@ -61,6 +61,7 @@
             "name": "orderFraudCheckId",
             "required": true,
             "in": "path",
+            "example": "e9e85a67-4189-4096-9fdd-226d9d90e023",
             "description": "Id of the fraud check result",
             "schema": {
               "format": "guid",
