@@ -8,7 +8,7 @@ import { FraudAwayRequest, PersonalAddress } from '../services/fraudAway/dto';
 import { FraudAwayService } from '../services/fraudAway/service';
 import { SimpleFraudRequest } from '../services/simpleFraud/dto';
 import { SimpleFraudService } from '../services/simpleFraud/service';
-import { CustomerOrder, OrderFraudCheck } from './dto';
+import { CustomerOrder, OrderFraudCheck, ProviderResult } from './dto';
 import { FraudCheckStatus } from './enum';
 import { FraudCheckModel } from './model';
 
@@ -81,32 +81,39 @@ export class FraudCheckService {
 
     // Check the third-party APIs
     const orderFraudCheckId = uuidV4();
-    let thirdPartyResult: FraudCheckStatus;
+    let providerName: string;
+    let providerResult: ProviderResult;
 
     // Fraud Away check
     const [fraudAwayResult, fraudAwayError] =
       await this.promiseService.resolver(this.fraudAwayCheck(request));
 
     if (!fraudAwayError) {
-      thirdPartyResult = fraudAwayResult;
+      providerName = 'FraudAway';
+      providerResult = fraudAwayResult;
     }
 
     // Simple Fraud check
-    if (!thirdPartyResult) {
+    if (!providerResult.result) {
       const [simpleFraudResult, simpleFraudError] =
         await this.promiseService.resolver(this.simpleFraudCheck(request));
 
       if (!simpleFraudError) {
-        thirdPartyResult = simpleFraudResult;
+        providerName = 'SimpleFraud';
+        providerResult = simpleFraudResult;
       }
     }
 
     // Threshold check
-    if (!thirdPartyResult) {
-      thirdPartyResult =
-        request.orderAmount <= this.bypassAmountThreshold
-          ? FraudCheckStatus.PASSED
-          : FraudCheckStatus.FAILED;
+    if (!providerResult.result) {
+      providerName = 'Threshold';
+      providerResult = {
+        response: `Bypass Amount Threshold: ${this.bypassAmountThreshold} - Order Amount: ${request.orderAmount}`,
+        result:
+          request.orderAmount <= this.bypassAmountThreshold
+            ? FraudCheckStatus.PASSED
+            : FraudCheckStatus.FAILED,
+      };
     }
 
     // The database insert might be important so we can fail the request
@@ -116,7 +123,9 @@ export class FraudCheckService {
       customerGuid: request.customerGuid,
       orderId: orderId,
       orderAmount: request.orderAmount,
-      fraudCheckStatus: thirdPartyResult,
+      fraudCheckStatus: providerResult.result,
+      providerName: providerName,
+      providerResponse: providerResult.response,
     });
 
     return {
@@ -124,11 +133,11 @@ export class FraudCheckService {
       customerGuid: request.customerGuid,
       orderId: orderId,
       orderAmount: request.orderAmount,
-      fraudCheckStatus: thirdPartyResult,
+      fraudCheckStatus: providerResult.result,
     };
   }
 
-  async fraudAwayCheck(request: CustomerOrder): Promise<FraudCheckStatus> {
+  async fraudAwayCheck(request: CustomerOrder): Promise<ProviderResult> {
     const fraudAwayRequest = <FraudAwayRequest>{
       personFullName: `${request.customerAddress.firstName} ${request.customerAddress.lastName}`,
       personAddress: <PersonalAddress>{
@@ -147,13 +156,17 @@ export class FraudCheckService {
       throw new Error(error);
     }
 
-    return response.fraudRiskScore &&
-      response.fraudRiskScore < this.riskScoreThreshold
-      ? FraudCheckStatus.PASSED
-      : FraudCheckStatus.FAILED;
+    return <ProviderResult>{
+      response: `fraudRiskScore: ${response.fraudRiskScore.toString()}`,
+      result:
+        response.fraudRiskScore &&
+        response.fraudRiskScore < this.riskScoreThreshold
+          ? FraudCheckStatus.PASSED
+          : FraudCheckStatus.FAILED,
+    };
   }
 
-  async simpleFraudCheck(request: CustomerOrder): Promise<FraudCheckStatus> {
+  async simpleFraudCheck(request: CustomerOrder): Promise<ProviderResult> {
     const simpleFraudRequest = <SimpleFraudRequest>{
       name: `${request.customerAddress.firstName} ${request.customerAddress.lastName}`,
       addressLine1: request.customerAddress.line1,
@@ -168,8 +181,12 @@ export class FraudCheckService {
       throw new Error(error);
     }
 
-    return response.result === 'Pass'
-      ? FraudCheckStatus.PASSED
-      : FraudCheckStatus.FAILED;
+    return {
+      response: response.result,
+      result:
+        response.result === 'Pass'
+          ? FraudCheckStatus.PASSED
+          : FraudCheckStatus.FAILED,
+    };
   }
 }

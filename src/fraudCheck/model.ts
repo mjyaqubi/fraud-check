@@ -35,4 +35,10 @@ export class FraudCheckModel extends Model {
     allowNull: false,
   })
   fraudCheckStatus: FraudCheckStatus;
+
+  @Column
+  providerName: string;
+
+  @Column
+  providerResponse: string;
 }

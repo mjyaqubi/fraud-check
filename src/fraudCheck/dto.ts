@@ -150,3 +150,13 @@ export class OrderFraudCheckParams {
   @IsNotEmpty()
   orderFraudCheckId: string;
 }
+
+export class ProviderResult {
+  @IsString()
+  @IsNotEmpty()
+  response: string;
+
+  @IsEnum(FraudCheckStatus)
+  @IsNotEmpty()
+  result: FraudCheckStatus;
+}
