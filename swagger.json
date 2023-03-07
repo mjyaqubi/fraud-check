@@ -1,0 +1,214 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/check/{orderId}": {
+      "put": {
+        "operationId": "fraud-check",
+        "summary": "Perform a fraud check for the customer order and returns the result of the check",
+        "description": "Create and perform a fraud check for a customer order",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "description": "Id of the order to perform the fraud check for",
+            "schema": {
+              "format": "alphanumeric",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerOrder"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderFraudCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Order ID or body supplied"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "tags": [
+          "Order Fraud Check"
+        ]
+      }
+    },
+    "/check/{orderFraudCheckId}": {
+      "get": {
+        "operationId": "fraud-check-result",
+        "summary": "Find the result of an order fraud check by its Id",
+        "description": "Retrieves the results of and order fraud check by its Id",
+        "parameters": [
+          {
+            "name": "orderFraudCheckId",
+            "required": true,
+            "in": "path",
+            "example": "e9e85a67-4189-4096-9fdd-226d9d90e023",
+            "description": "Id of the fraud check result",
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderFraudCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Order ID or body supplied"
+          },
+          "404": {
+            "description": "OrderFraudCheck Not Found"
+          }
+        },
+        "tags": [
+          "Order Fraud Check"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Order Fraud Check",
+    "description": "This is a simple Order Fraud Check API based on the OpenAPI 3.0 specification. This API describes the specification for performing a Fraud Check for a customer order and retrieving the details of a prior fraud check. | [swagger.json](swagger.json)",
+    "version": "0.0.1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Address": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe"
+          },
+          "line1": {
+            "type": "string",
+            "example": "10 High Street"
+          },
+          "city": {
+            "type": "string",
+            "example": "London"
+          },
+          "region": {
+            "type": "string",
+            "example": "Greater London"
+          },
+          "postalCode": {
+            "type": "string",
+            "example": "W1T 3HE"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "line1",
+          "city",
+          "region",
+          "postalCode"
+        ]
+      },
+      "CustomerOrder": {
+        "type": "object",
+        "properties": {
+          "customerGuid": {
+            "type": "string",
+            "format": "guid",
+            "example": "e9e85a67-4189-4096-9fdd-226d9d90e023"
+          },
+          "orderAmount": {
+            "type": "number",
+            "format": "money",
+            "multipleOf": 0.01,
+            "example": "1500.55"
+          },
+          "customerAddress": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "required": [
+          "customerGuid",
+          "orderAmount",
+          "customerAddress"
+        ]
+      },
+      "OrderFraudCheck": {
+        "type": "object",
+        "properties": {
+          "orderFraudCheckId": {
+            "type": "string",
+            "format": "guid",
+            "example": "e9e85a67-4189-4096-9fdd-226d9d90e023"
+          },
+          "customerGuid": {
+            "type": "string",
+            "format": "guid",
+            "example": "e9e85a67-4189-4096-9fdd-226d9d90e023"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "alphanumeric",
+            "example": "ABC123"
+          },
+          "orderAmount": {
+            "type": "number",
+            "format": "money",
+            "multipleOf": 0.01,
+            "example": "1500.55"
+          },
+          "fraudCheckStatus": {
+            "type": "string",
+            "enum": [
+              "Passed",
+              "Failed"
+            ],
+            "description": "The result of Fraud Check"
+          }
+        },
+        "required": [
+          "orderFraudCheckId",
+          "customerGuid",
+          "orderId",
+          "orderAmount",
+          "fraudCheckStatus"
+        ]
+      }
+    }
+  }
+}
